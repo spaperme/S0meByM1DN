@@ -50,6 +50,7 @@ let intervalId;
 app.get('/', (req, res) => {
     const interval = parseInt(req.query.interval, 10) || 30000; // Default interval of 30 seconds
     if (intervalId) clearInterval(intervalId);
+    callAdb();
     intervalId = setInterval(callAdb, interval);
     res.send(`Interval started with ${interval}ms.`);
 });
