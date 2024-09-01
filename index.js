@@ -1,11 +1,39 @@
 const express = require('express');
-const JsonRpcClient = require('jsonrpc-client');
+const { JSONRPCClient } = require('json-rpc-2.0');
+const http = require('http');
 
 const app = express();
 const port = 3000;
 
-// Initialize the JSON-RPC client
-const adbClient = new JsonRpcClient({ host: '127.0.0.1', port: '5037' }); // Adjust ADB host and port if necessary
+// Create an instance of JSONRPCClient
+const adbClient = new JSONRPCClient((jsonRPCRequest) =>
+    http
+        .request(
+            {
+                hostname: '127.0.0.1',
+                port: 5037,
+                path: '/',
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            },
+            (res) => {
+                let data = '';
+
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                res.on('end', () => {
+                    if (res.statusCode === 200) {
+                        adbClient.receive(JSON.parse(data));
+                    } else {
+                        console.error(`Failed with status code: ${res.statusCode}`);
+                    }
+                });
+            }
+        )
+        .end(JSON.stringify(jsonRPCRequest))
+);
 
 // Function to call ADB using JSON-RPC
 const callAdb = async () => {
@@ -19,7 +47,7 @@ const callAdb = async () => {
 
 // Route to start the interval
 let intervalId;
-app.get('/start-interval', (req, res) => {
+app.get('/', (req, res) => {
     const interval = parseInt(req.query.interval, 10) || 30000; // Default interval of 30 seconds
     if (intervalId) clearInterval(intervalId);
     intervalId = setInterval(callAdb, interval);
