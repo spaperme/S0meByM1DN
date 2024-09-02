@@ -1,6 +1,7 @@
 const express = require('express');
 const { JSONRPCClient } = require('json-rpc-2.0');
 const http = require('http');
+const { exec } = require('child_process');
 
 const app = express();
 const port = 3000;
@@ -47,13 +48,25 @@ const callAdb = async () => {
 
 // Route to start the interval
 let intervalId;
-app.get('/', (req, res) => {
+app.get('/test', (req, res) => {
     const interval = parseInt(req.query.interval, 10) || 30000; // Default interval of 30 seconds
     if (intervalId) clearInterval(intervalId);
     callAdb();
     intervalId = setInterval(callAdb, interval);
     res.send(`Interval started with ${interval}ms.`);
 });
+
+app.get('/', (req, res) => {
+    exec('adb shell monkey -p id.dana 1', (error, stdout, stderr) => {
+        if (error) {
+            console.error(`exec error: ${error}`);
+            return;
+        }
+        console.log(`stdout: ${stdout}`);
+        console.error(`stderr: ${stderr}`);
+    });
+});
+
 
 // Route to stop the interval
 app.get('/stop-interval', (req, res) => {
