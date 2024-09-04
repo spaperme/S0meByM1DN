@@ -79,6 +79,47 @@ app.get('/stop-interval', (req, res) => {
     }
 });
 
+app.use(bodyParser.json());
+// Create a new JSON-RPC server instance
+const server = new JSONRPCServer();
+
+// Define the `click` method
+server.addMethod('click', async (params) => {
+    const { x, y } = params;
+    return new Promise((resolve, reject) => {
+        exec(`adb shell input tap ${x} ${y}`, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolve(stdout);
+        });
+    });
+});
+
+// Define the `swipe` method
+server.addMethod('swipe', async (params) => {
+    const { startX, startY, endX, endY, duration } = params;
+    return new Promise((resolve, reject) => {
+        exec(`adb shell input swipe ${startX} ${startY} ${endX} ${endY} ${duration}`, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolve(stdout);
+        });
+    });
+});
+
+// Route to handle JSON-RPC requests
+app.post('/jsonrpc/0', async (req, res) => {
+    try {
+        const response = await server.receive(req.body);
+        res.json(response);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
